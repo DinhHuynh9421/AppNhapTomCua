@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nhập Đơn Hàng</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f4f6f8; color: #222; font-size: 15px; }
+  h1 { text-align: center; padding: 18px 0 10px; font-size: 20px; color: #1a56db; letter-spacing: 0.5px; }
+  .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.09); padding: 18px 18px 14px; margin: 0 auto 14px; max-width: 600px; }
+  label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  }
+  input[type="date"] {
+  -webkit-locale: "vi-VN";
+}
+
+  input[type=text], input[type=number] {
+    width: 100%; padding: 9px 11px; border: 1px solid #d1d5db;
+    border-radius: 7px; font-size: 14px; outline: none; background: #fff; color: #222;
+  }
+  input:focus { border-color: #1a56db; }
+  input[readonly] { background: #f0f4ff; color: #555; cursor: default; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field { position: relative; }
+  .dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    background: #fff; border: 1px solid #d1d5db; border-radius: 7px;
+    z-index: 999; max-height: 200px; overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  }
+  .dropdown div {
+    padding: 9px 12px; font-size: 13px; cursor: pointer;
+    display: flex; justify-content: space-between;
+  }
+  .dropdown div:hover { background: #eff6ff; }
+  .dropdown div span.addr { color: #888; font-size: 12px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-add { background: #1a56db; color: #fff; width: 100%; justify-content: center; margin-top: 4px; }
+  .btn-add:hover { background: #1648c0; }
+  .btn-print { background: #0f766e; color: #fff; }
+  .btn-print:hover { background: #0d6561; }
+  .btn-copy { background: #fff; color: #222; border: 1px solid #d1d5db; }
+  .btn-copy:hover { background: #f3f4f6; }
+  .btn-zalo { background: #0068FF; color: #fff; }
+  .btn-zalo:hover { background: #0055d4; }
+  .btn-clear { background: #fff; color: #e53e3e; border: 1px solid #fca5a5; font-size: 12px; padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 7px 8px; color: #666; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 7px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  td.del { text-align: center; color: #e53e3e; cursor: pointer; font-size: 18px; font-weight: bold; }
+  td.del:hover { color: #c53030; }
+  .print-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 13px 15px; font-size: 13px; line-height: 2; white-space: pre-wrap; word-break: break-word; margin-bottom: 14px; color: #222; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .toast { display: none; position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 9px 22px; border-radius: 8px; font-size: 13px; z-index: 9999; }
+  .section-title { font-size: 12px; color: #888; margin-bottom: 10px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<h1>📋 Nhập Đơn Hàng</h1>
+
+<div class="card">
+  <p class="section-title">Thông tin đơn hàng mới</p>
+  <div class="row2" style="margin-bottom:12px;">
+  <div class="field">
+    <label>Ngày đặt hàng</label>
+    <input id="inp-date" type="date" style="width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;outline:none;"
+    lang="vi" />
+  </div>
+</div>
+  <div class="row2"> 
+    <div class="field">
+      <label>Họ tên khách hàng</label>
+      <input id="inp-name" type="text" placeholder="Gõ tên..." autocomplete="off"
+        oninput="filterNames(this.value)" onfocus="filterNames(this.value)" />
+      <div class="dropdown" id="dd-name"></div>
+    </div>
+    <div class="field">
+      <label>Địa chỉ</label>
+      <input id="inp-addr" type="text" placeholder="Tự điền theo tên" readonly />
+    </div>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>Số lượng</label>
+      <input id="inp-qty" type="number" min="1" placeholder="Nhập số lượng..." />
+    </div>
+    <div class="field">
+      <label>Sản phẩm mua</label>
+      <input id="inp-prod" type="text" placeholder="Gõ tên sản phẩm..." autocomplete="off"
+        oninput="filterProds(this.value)" onfocus="filterProds(this.value)" />
+      <div class="dropdown" id="dd-prod"></div>
+    </div>
+  </div>
+  <button class="btn btn-add" onclick="addRow()">+ Thêm vào danh sách</button>
+</div>
+
+<div class="card" id="list-area" style="display:none;">
+  <div class="top-bar">
+    <p class="section-title" style="margin:0;">Danh sách đơn hàng</p>
+    <button class="btn-clear" onclick="clearAll()">Xóa tất cả</button>
+  </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32%;">Họ tên</th>
+          <th style="width:14%;">ĐC</th>
+          <th style="width:12%;text-align:center;">SL</th>
+          <th style="width:32%;">Sản phẩm</th>
+          <th style="width:10%;"></th>
+        </tr>
+      </thead>
+      <tbody id="order-body"></tbody>
+    </table>
+  </div>
+  <div style="text-align:right; margin-top:14px;">
+    <button class="btn btn-print" onclick="showPrint()">🖨 IN / XUẤT</button>
+  </div>
+</div>
+
+<div class="card" id="print-area" style="display:none;">
+  <p class="section-title">Nội dung xuất</p>
+  <div class="print-box" id="print-text"></div>
+  <div class="btn-row">
+    <button class="btn btn-copy" onclick="copyText()">📋 Sao chép</button>
+    <button class="btn btn-zalo" onclick="sendZalo()">💬 Gửi Zalo</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CUSTOMERS = [
+  /* THÊM KHÁCH HÀNG VÀO ĐÂY — theo mẫu: {name:"Họ Tên", addr:"ĐC"}, */
+
+  { name: "Đinh Văn Sên", addr: "LX" },
+  { name: "Đinh Văn Lân", addr: "LX" },
+  { name: "Nguyễn Quốc Thái", addr: "VB" },
+  { name: "Đinh Văn Nguyễn", addr: "BB" },
+  { name: "Trần Nhựt Trường", addr: "BĐ" },
+  { name: "Trần Quốc Khải", addr: "BO" },
+  { name: "Trần Văn Hùng", addr: "BO" },
+  { name: "Trần Văn Huynh", addr: "BO" },
+  { name: "Đinh Thị Loan", addr: "LX" },
+  { name: "Trần Tiến Thẳng", addr: "BB" },
+  { name: "Nông Thị Phiến", addr: "BB" },
+  { name: "Lê Thị Muội", addr: "LXA" },
+  { name: "Trần Kim Diễm", addr: "BĐ" },
+  { name: "Võ Hê Rô", addr: "LX" },
+  { name: "Ngô Ngọc Khê", addr: "LX" },
+  { name: "Hà Quang Kháng", addr: "CĐ" },
+  { name: "Võ Ngọc Điệp", addr: "BB" },
+  { name: "Trần Thị Bích Thuận", addr: "BĐ" },
+  { name: "Nguyễn Thanh Thế", addr: "BL" },
+  { name: "Huỳnh Thanh Khởi", addr: "BL" },
+  { name: "Lê Văn Mung", addr: "BO" },
+  { name: "Trần Văn Tếch", addr: "BĐ" },
+  { name: "Đỗ Hoàng Hên", addr: "LX" },
+  { name: "Nguyễn Quốc Khải", addr: "LX" },
+  { name: "Lê Văn Sơn", addr: "LXA" },
+  { name: "Nông Quốc Tuấn", addr: "LXA" },
+  { name: "Ngô Hoàng Hưng", addr: "LXA" },
+  { name: "Huỳnh Thị Lệ", addr: "LXA" },
+  { name: "Trần Văn Trí", addr: "BO" },
+  { name: "Đinh Thị Nương", addr: "BO" },
+  { name: "Võ Văn Tòng", addr: "BO" },
+  { name: "Trần Văn Lang", addr: "BO" },
+  { name: "Lê Hoài Giận", addr: "BO" },
+  { name: "Nguyễn Văn Ớt", addr: "BĐ" },
+  { name: "Lê Hoàng Dân", addr: "BĐ" },
+  { name: "Lê Văn Kiệm", addr: "BL" },
+  { name: "Nguyễn Văn Quán", addr: "BL" },
+  { name: "Đinh Văn Dương", addr: "BO" },
+  { name: "Trần Thế Anh", addr: "TTND" },
+  { name: "Trần Quốc Bảo", addr: "TTND" },
+  { name: "Trần Thị Kiều Diễm", addr: "VB" },
+  { name: "Nguyễn Văn Thụ", addr: "BL" },
+  { name: "Trần Thị Mỹ Xuyên", addr: "VB" },
+  { name: "Nguyễn Hoàng Lẹ", addr: "LXA" },
+  { name: "Huỳnh Văn Hưởng", addr: "LXA" },
+  { name: "Nguyễn Hà Linh", addr: "NĐ" },
+  { name: "Nguyễn Hoàng Mau", addr: "LXA" },
+  { name: "Nông Văn Thạch", addr: "LX" },
+  { name: "Nguyễn Hoàng Chơn", addr: "LXA" },
+  { name: "Võ Văn Lành", addr: "BO" },
+  { name: "Nông Văn Thái", addr: "LX" },
+  { name: "Nguyễn Văn Biển", addr: "LX" },
+  { name: "Dương Văn Phol", addr: "LXA" },
+  { name: "Nguyễn Hoàng Nam", addr: "LXA" },
+  { name: "Nguyễn Văn Bu", addr: "LX" },
+  { name: "Nguyễn Chí Thái", addr: "BO" },
+  { name: "Tô Hoàng My", addr: "LX" },
+  { name: "Đặng Văn Tức", addr: "LX" },
+  { name: "Ngô Văn Trường", addr: "LX" },
+  { name: "Nguyễn Văn Phong", addr: "BO" },
+  { name: "Võ Văn Tân", addr: "BO" },
+  { name: "Đinh Văn Hiền", addr: "BO" },
+  { name: "Nguyễn Hồng Mau", addr: "LX" },
+  { name: "Nguyễn Văn An", addr: "LXA" },
+  { name: "Lê Văn Khởi", addr: "LX" },
+  { name: "Nguyễn Văn Kiệm", addr: "LXA" },
+  { name: "Nguyễn Văn Nghiệm", addr: "LXA" },
+  { name: "Nông Văn Lợi", addr: "LXA" },
+  { name: "Dương Oanh Em", addr: "LXA" },
+  { name: "Hà Văn Mười", addr: "BO" },
+  { name: "Trần Trung Dũng", addr: "CĐ" },
+  { name: "Nguyễn Minh Cường", addr: "LX" },
+  { name: "Nguyễn Văn Hộ(Trung)", addr: "LX" },
+  { name: "Nguyễn Văn Tư", addr: "LX" },
+  { name: "Nguyễn Văn Nghiệm", addr: "BO" },
+  { name: "Trần Văn Thừa", addr: "BO" },
+  { name: "Nông Văn Tuấn", addr: "LX" },
+  { name: "Tô Văn Kha", addr: "LXA" },
+  { name: "Võ Văn Thoại", addr: "LXA" },
+  { name: "Lê Văn Diễn", addr: "LXA" },
+  { name: "Trương Hoàng Nhí", addr: "CBTG" },
+  { name: "Võ Thị Kim Hậu", addr: "CTHG" },
+  { name: "Đặng Văn Thừa", addr: "LXA" },
+  { name: "Lê Văn Phong", addr: "ĐHBL" },
+  { name: "Nông Thái Phiên", addr: "LXA" },
+  { name: "Trần Văn Tràng", addr: "BO" },
+  { name: "Võ Văn Luôn", addr: "BO" },
+  { name: "Trần Minh Hải", addr: "LXAG" },
+  { name: "Nguyễn Văn Bảo", addr: "LX" },
+  { name: "Nông Trà My", addr: "LXA" },
+  { name: "Trần Văn Huấn", addr: "BO" },
+  { name: "Mai Văn Nghĩ", addr: "LXA" },
+  { name: "Phạm Văn Sĩ", addr: "LX" },
+  { name: "Nguyễn Văn Tùng", addr: "LXA" },
+  { name: "Trần Việt Hưng", addr: "VB" },
+  { name: "Nguyễn Văn Thường", addr: "LXA" },
+  { name: "Đặng Văn Ni", addr: "LX" },
+  { name: "Mai Văn Linh", addr: "CĐ" },
+  { name: "Lê Văn Hải", addr: "LX" },
+  { name: "Nguyễn Văn Ninh", addr: "BO" },
+  { name: "Tô Quốc Kháng", addr: "VH" },
+  { name: "Nguyễn Hoàng Lanh", addr: "LXA" },
+  { name: "Lê Văn Nhẫn", addr: "VH" },
+  { name: "Nguyễn Tuấn Linh", addr: "GHĐH" },
+  { name: "Phạm Văn Hậu", addr: "VT" },
+  { name: "Võ Hồng Vũ", addr: "BB" },
+  { name: "Nguyễn Văn Quý", addr: "CTST" },
+  { name: "Phạm Ngọc Hương", addr: "KSST" },
+  { name: "Nguyễn Mắc Lel", addr: "NC" },
+  { name: "Cao Minh Tiền", addr: "VH" },
+  { name: "Mai Văn Nghiêm", addr: "LX" },
+  { name: "Nông Văn Khang", addr: "LXA" },
+  { name: "Nguyễn Văn Phong", addr: "LXA" },
+  { name: "Lê Văn Tròn", addr: "BO" },
+  { name: "Lê Văn Khanh", addr: "LX" },
+  { name: "Lê Văn Hào", addr: "LXA" },
+  { name: "Phạm Văn Tình", addr: "LX" },
+  { name: "Nguyễn Văn Khởi", addr: "LXA" },
+  { name: "Từ Văn Huynh", addr: "LXA" },
+  { name: "Lê Văn Khởi", addr: "BO" },
+  { name: "Nguyễn Văn Thái", addr: "LX" },
+  { name: "Nguyễn Văn Út Anh", addr: "LXA" },
+  { name: "Nguyễn Văn Dân", addr: "LX" },
+  { name: "Nguyễn Hữu Tài", addr: "TPBL" },
+  { name: "Lư Thị Kim Ngôn", addr: "HB" },
+  { name: "Nguyễn Chí Dũng", addr: "LX" },
+  { name: "Đinh Vũ Linh", addr: "BO" },
+  { name: "Lê Thị Bé Ba", addr: "LX" },
+  { name: "Nông Văn Chậm", addr: "LX" },
+  { name: "Nguyễn Văn Xuyên", addr: "LX" },
+  { name: "Đinh Văn Thức", addr: "BO" },
+  { name: "Lương Bắc Sơn", addr: "NH" },
+  { name: "Trần Khải Hoàng", addr: "NQ" },
+  { name: "Châu Kim Ngân", addr: "CLTV" },
+  { name: "Dương Đình Thể", addr: "CT" },
+  { name: "Nguyễn Văn Quới", addr: "LX" },
+  { name: "Võ Văn Đông", addr: "LX" },
+  { name: "Sử An Bình", addr: "NH" },
+  { name: "Ngô Thành Pho", addr: "GQKG" },
+  { name: "Tăng Văn Thạch", addr: "LX" },
+  { name: "Lưu Văn Tụy", addr: "CĐ" },
+  { name: "Nguyễn Văn Kiếm", addr: "LXA" },
+  { name: "Đặng Thị Linh", addr: "LX" },
+  { name: "Huỳnh Chí Khải", addr: "LX" },
+  { name: "Trần Văn Vũ", addr: "LX" },
+  { name: "Hồ Văn Chuyền", addr: "CĐ" },
+  { name: "Trần Văn Chuyển", addr: "LX" },
+  { name: "Nguyễn Văn Dậm", addr: "LX" },
+  { name: "Phan Văn Đừng", addr: "BO" },
+  { name: "Đường Nhật Linh", addr: "BO" },
+  { name: "Nguyễn Văn Hiểu", addr: "LX" },
+  { name: "Nguyễn Văn Thừa", addr: "GQKG" },
+  { name: "Nguyễn Thanh Nghiêm", addr: "LXA" },
+  { name: "Lê Văn Thừa", addr: "BL" },
+  { name: "Lê Minh Đương", addr: "LX" },
+  { name: "Nông Bê Em", addr: "LX" },
+  { name: "Trần Văn Hợp", addr: "BO" },
+  { name: "Lê Văn Ninh", addr: "LX" },
+  { name: "Nông Văn Xem", addr: "LXA" },
+  { name: "Lê Văn Châu", addr: "LX" },
+  { name: "Nguyễn Văn Thương", addr: "BO" },
+  { name: "Nguyễn Văn Dũng", addr: "BO" },
+  { name: "Nông Văn Ánh", addr: "LX" },
+  { name: "Nông Văn Châu", addr: "LXA" },
+  { name: "Tô Vũ Khiêm", addr: "LXA" },
+  { name: "Huỳnh Thị Nghi", addr: "LX" },
+  { name: "Nguyễn Văn Hoàng (Anh 4 Hoàng)", addr: "LXA" },
+  { name: "Nông Văn Khởi", addr: "LX" },
+  { name: "Trần Thanh Phong", addr: "CĐ" },
+  { name: "Nguyễn Văn Trường", addr: "LX" },
+  { name: "Nguyễn Thành Long", addr: "PL" },
+  { name: "Phạm Văn Phin", addr: "LX" },
+  { name: "Trần Minh Lý", addr: "NQ" },
+  { name: "Võ Văn Tửng", addr: "BO" },
+  { name: "Nông Văn Anh", addr: "LXA" },
+  { name: "Đặng Thành Khanh", addr: "NQA" },
+  { name: "Nguyễn Văn Lợi", addr: "VL" },
+  { name: "Tống Văn Tiệp", addr: "VH" },
+  { name: "Từ Văn Huynh2", addr: "LXA" },
+  { name: "Lưu Thành Đông", addr: "VL" },
+  { name: "Dương Văn Tần", addr: "LXA" },
+  { name: "Nguyễn Thanh Đoàn", addr: "LXA" },
+  { name: "Nguyễn Hoàng Đặng", addr: "LN" },
+  { name: "Võ Việt Hồng", addr: "VL" },
+  { name: "Trần Văn Thống", addr: "VL" },
+  { name: "Tăng Văn Thành", addr: "VL" },
+  { name: "Nguyễn Văn Giao", addr: "VL" },
+  { name: "Đặng Văn Sol", addr: "LXA" },
+  { name: "Nguyễn Văn Đỉnh", addr: "LX" },
+  { name: "Nguyễn Văn Đỉnh", addr: "LXA" },
+  { name: "Trần Chí Linh", addr: "BO" },
+  { name: "Phạm Kha La", addr: "NTL" },
+  { name: "Nông Văn Xia", addr: "LXA" },
+  { name: "Lê Văn Thấm", addr: "BO" },
+  { name: "Trần Văn Chùm", addr: "LXA" },
+  { name: "Đặng Minh Pháp", addr: "TPBL" },
+  { name: "Lưu Kim Ngân", addr: "VLBL" },
+  { name: "Nguyễn Văn Mạnh", addr: "LXA" },
+  { name: "Lê Văn Chiều", addr: "VL" },
+  { name: "Lê Văn Phong", addr: "LX" },
+  { name: "Trần Văn Lợi", addr: "BO" },
+  { name: "Nguyễn Văn Chiến", addr: "LX" },
+  { name: "Phan Hoàng Nhơn", addr: "LX" },
+  { name: "Nguyễn Thuý Ngân", addr: "VL" },
+  { name: "Trần Văn Cầu", addr: "BO" },
+  { name: "Lê Hoàng Nam", addr: "LXA" },
+  { name: "Ngô Văn Thuận", addr: "LXA" },
+  { name: "Nguyễn Văn Em (Hoài K3)", addr: "LX" },
+  { name: "Huỳnh Văn Cường", addr: "LXA" },
+  { name: "Ngô Văn Khải", addr: "LX" },
+  { name: "Nguyễn Văn Toàn", addr: "LXA" },
+  { name: "Nguyễn Văn Bính", addr: "LXA" },
+  { name: "Trần Văn Giang", addr: "LX" },
+  { name: "Lê Văn Na", addr: "VL" },
+  { name: "Lê Tuấn Lê", addr: "LX" },
+  { name: "Huỳnh Minh Dương", addr: "LX" },
+  { name: "Tô Chí Nguyện", addr: "VL" },
+  { name: "Lê Hoàng Giảo", addr: "LX" },
+  { name: "Trần Thị Tươi", addr: "CĐ" },
+  { name: "Lê Văn Xuyên", addr: "LXA" },
+  { name: "Ngô Việt Oanh", addr: "VTVL" },
+  { name: "Nguyễn Thị Kiều", addr: "LX" },
+  { name: "Nguyễn Văn Dưỡng", addr: "LN" },
+  { name: "Ngô Hồng Khanh", addr: "NTLA" },
+  { name: "Nông Văn Vốn", addr: "LX" },
+  { name: "Trần Văn Thắng", addr: "BO" },
+  { name: "Nguyễn Minh Nghị", addr: "VL" },
+  { name: "Nguyễn Minh Cảnh", addr: "VL" },
+  { name: "Lương Văn Nghiêm", addr: "LXA" },
+  { name: "Nguyễn Văn Luân", addr: "CĐ" },
+  { name: "Nguyễn Hoàng Ngoan", addr: "NQA" },
+  { name: "Nguyễn Bảo Thượng", addr: "LXA" },
+  { name: "Võ Văn Mẫn", addr: "VB" },
+  { name: "Võ Linh Thái", addr: "BB" },
+  { name: "Tăng Minh Tuyết", addr: "LXA" },
+  { name: "Danh Chi", addr: "TPBL" },
+  { name: "Danh Khiêng", addr: "LXA" },
+  { name: "Lương Văn Chính", addr: "LX" },
+  { name: "Lương Văn Kháng", addr: "LXA" },
+  { name: "Nguyễn Minh Tuấn (Trinh)", addr: "VB" },
+  { name: "Nguyễn Văn Luân", addr: "CĐ" },
+  { name: "Phan Văn Tài", addr: "GQKG" },
+  { name: "Võ Văn Trắng", addr: "BO" },
+  { name: "Trần Văn Phúc", addr: "LXA" },
+  { name: "Đặng Thị Loan (Thiếm chuyện K3)", addr: "LX" },
+  { name: "Phạm Văn Quyền", addr: "LX" },
+  { name: "Nguyễn Văn Tích", addr: "BO" },
+  { name: "Ngô Hữu Phước", addr: "LX" },
+  { name: "Phạm Hữu Nghĩa", addr: "LX" },
+  { name: "Nguyễn Văn Đương Kinh 3", addr: "LX" },
+  { name: "Kiều Minh Châu", addr: "VB" },
+  { name: "Nguyễn Văn Thống", addr: "LN" },
+  { name: "Lê Hồng Chi (Bến Luông)", addr: "LX" },
+  { name: "Võ Minh Tròn", addr: "LX" },
+  { name: "Đinh Quốc Khái", addr: "BO" },
+  { name: "Nông Văn Việt", addr: "LXA" },
+  { name: "Dã (Kinh 7)", addr: "BO" },
+  { name: "Phạm Văn Chiến", addr: "LX" },
+  { name: "Tô Văn Kích", addr: "LXA" },
+  { name: "Nguyễn Văn Hậu", addr: "CĐ" },
+  { name: "Nguyễn Văn Phúc", addr: "CĐ" },
+  { name: "Dương Văn Than", addr: "LX" },
+  { name: "Nguyễn Thanh Nhi", addr: "CĐ" },
+  { name: "Nguyễn Văn Khanh", addr: "CĐ" },
+  { name: "Trương Văn Liêm kinh 4", addr: "LXA" },
+  { name: "Nguyễn Văn Mung", addr: "CĐ" },
+  { name: "Nguyễn Bá Tĩnh", addr: "LX" },
+  { name: "Lương Văn Khả", addr: "LXA" },
+  { name: "Dương Văn Đẳng", addr: "LX" },
+  { name: "Mai Văn Bằng", addr: "CĐ" },
+  { name: "Phan Mộng Khang", addr: "CĐ" },
+  { name: "Trần Văn Thu A. Bằng k9)", addr: "LX" },
+  { name: "Ngô Văn Thiện Cha Diệp", addr: "LXA" },
+  { name: "Võ Văn Thi", addr: "LXA" },
+  { name: "Lê Văn Phong (kinh 3)", addr: "LXA" },
+  { name: "Dương Văn Hùng (Kinh 4)", addr: "LX" },
+  { name: "Nguyễn Thanh Điền", addr: "LXA" },
+  { name: "Trần Văn Thuật", addr: "CĐ" },
+  { name: "Nguyễn Văn Mùa", addr: "CĐ" },
+  { name: "Đinh Văn Oanh", addr: "CĐ" },
+  { name: "Đinh Văn Xuyên (chị Phượng)", addr: "CĐ" },
+  { name: "Nông Văn Đá", addr: "LX" },
+  { name: "Đặng Thành Thương", addr: "BRHD" },
+  { name: "Đặng Thị Tiểu Thơ", addr: "LX" },
+  { name: "Hồ Quốc Trạng", addr: "TPBL" },
+  { name: "Hà Duy Đăng", addr: "CĐ" },
+  { name: "Trần Tấn Đạt", addr: "TPBL" },
+  { name: "Nguyễn Văn Giàu", addr: "LXA" },
+
+
+  /* THÊM KHÁCH HÀNG VÀO ĐÂY — theo mẫu: {name:"Họ Tên", addr:"ĐC"}, */
+];
+
+const PRODUCTS = [
+  "Sú lở", "Sú", "Sú moana", "Sú chân đỏ", "TCX", "Càng", "Cua tiêu", "Cua mít", "Cua", "YuccaC30", 
+  "Men", "CM01", "CM02", "Khoáng", "Toxin", "TA 10 ký", "TA", "Bồ đề", "Anti Rota", "Thuốc Rong", "Thẻ"
+  /* THÊM SẢN PHẨM VÀO ĐÂY — ví dụ: "Tên sản phẩm", */
+];
+
+let orders = [];
+// Tự động chọn ngày hôm nay
+document.getElementById('inp-date').valueAsDate = new Date();
+
+function norm(s){
+  return s.toLowerCase()
+  .replace(/đ/g, 'd')
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g,"");
+}
+
+function filterNames(v){
+  const dd = document.getElementById('dd-name');
+
+  if(!v.trim()){
+    dd.style.display='none';
+    return;
+  }
+
+  const keyword = norm(v);
+
+  const hits = CUSTOMERS
+    .map(c => {
+      const n = norm(c.name);
+
+      // MỚI
+const words = n.split(' ');
+let score = 99;
+if(words[words.length - 1] === keyword){
+  score = 0;  // từ cuối khớp CHÍNH XÁC → cao nhất
+}
+else if(words[words.length - 1].startsWith(keyword)){
+  score = 1;  // từ cuối bắt đầu bằng keyword
+}
+else if(words.some(w => w.startsWith(keyword))){
+  score = 2;  // từ khác bắt đầu đúng
+}
+else if(n.includes(keyword)){
+  score = 3;  // chứa ở giữa
+}
+
+      return {...c, score};
+    })
+    .filter(c => c.score < 99)
+    .sort((a,b) => a.score - b.score)
+    .slice(0,12);
+
+  if(!hits.length){
+    dd.style.display='none';
+    return;
+  }
+
+  dd.innerHTML = hits.map(c =>
+    `<div onclick="pickName('${esc(c.name)}','${esc(c.addr)}')">
+      <span>${c.name}</span>
+      <span class="addr">${c.addr}</span>
+    </div>`
+  ).join('');
+
+  dd.style.display = 'block';
+}
+function pickName(name, addr){
+  document.getElementById('inp-name').value = name;
+  document.getElementById('inp-addr').value = addr;
+  document.getElementById('dd-name').style.display = 'none';
+}
+
+function filterProds(v){
+  const dd = document.getElementById('dd-prod');
+  if(!v.trim()){ dd.style.display='none'; return; }
+  const keyword = norm(v);
+  
+  const hits = PRODUCTS
+    .map(p => {
+      const n = norm(p);
+      const words = n.split(' ');
+      let score = 99;
+      if(words[0] === keyword){
+        score = 0;  // từ đầu khớp chính xác
+      }
+      else if(words[0].startsWith(keyword)){
+        score = 1;  // từ đầu bắt đầu bằng keyword
+      }
+      else if(words.some(w => w === keyword)){
+        score = 2;  // từ khác khớp chính xác
+      }
+      else if(n.includes(keyword)){
+        score = 3;  // chứa ở giữa
+      }
+      return {p, score};
+    })
+    .filter(x => x.score < 99)
+    .sort((a,b) => a.score - b.score)
+    .slice(0,10)
+    .map(x => x.p);
+
+  if(!hits.length){ dd.style.display='none'; return; }
+  dd.innerHTML = hits.map(p =>
+    `<div onclick="pickProd('${esc(p)}')">${p}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function pickProd(p){
+  document.getElementById('inp-prod').value = p;
+  document.getElementById('dd-prod').style.display = 'none';
+}
+
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#inp-name') && !e.target.closest('#dd-name'))
+    document.getElementById('dd-name').style.display='none';
+  if(!e.target.closest('#inp-prod') && !e.target.closest('#dd-prod'))
+    document.getElementById('dd-prod').style.display='none';
+});
+
+function addRow(){
+  const name = document.getElementById('inp-name').value.trim();
+  const addr = document.getElementById('inp-addr').value.trim();
+  const qty  = document.getElementById('inp-qty').value.trim();
+  const prod = document.getElementById('inp-prod').value.trim();
+  if(!name||!qty||!prod){ toast('Vui lòng điền đủ: Tên, Số lượng, Sản phẩm!'); return; }
+  orders.push({name, addr, qty, prod});
+  renderTable();
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-addr').value='';
+  document.getElementById('inp-qty').value='';
+  document.getElementById('inp-prod').value='';
+  document.getElementById('inp-name').focus();
+}
+
+function renderTable(){
+  const tbody = document.getElementById('order-body');
+  tbody.innerHTML = orders.map((o,i) =>
+    `<tr>
+      <td>${o.name}</td>
+      <td style="color:#888;">${o.addr}</td>
+      <td style="text-align:center;">${o.qty}</td>
+      <td>${o.prod}</td>
+      <td class="del" onclick="delRow(${i})" title="Xóa">✕</td>
+    </tr>`
+  ).join('');
+  document.getElementById('list-area').style.display = orders.length ? 'block' : 'none';
+  document.getElementById('print-area').style.display = 'none';
+}
+
+function delRow(i){ orders.splice(i,1); renderTable(); }
+function clearAll(){ if(confirm('Xóa tất cả đơn hàng?')){ orders=[]; renderTable(); } }
+
+function showPrint(){
+  const dateVal = document.getElementById('inp-date').value;
+  const [y,m,d] = dateVal.split('-');
+  const dateStr = dateVal ? `Ngày: ${d}/${m}/${y}\n` : '';
+  const txt = dateStr + orders.map(o => `${o.name} - ${o.addr} - SL: ${o.qty} - ${o.prod}`).join('\n');
+  document.getElementById('print-text').textContent = txt;
+  document.getElementById('print-area').style.display = 'block';
+  document.getElementById('print-area').scrollIntoView({behavior:'smooth'});
+}
+
+function copyText(){
+  const txt = document.getElementById('print-text').textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(txt).then(()=>toast('Đã sao chép!')).catch(()=>fallbackCopy(txt));
+  } else { fallbackCopy(txt); }
+}
+
+function fallbackCopy(txt){
+  const ta = document.createElement('textarea');
+  ta.value = txt; document.body.appendChild(ta); ta.select();
+  document.execCommand('copy'); document.body.removeChild(ta);
+  toast('Đã sao chép!');
+}
+
+async function sendZalo(){
+  const txt = document.getElementById('print-text').textContent;
+
+  // Điện thoại hỗ trợ chia sẻ hệ thống
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Danh sách đơn hàng',
+        text: txt
+      });
+    } catch (err) {
+      console.log('Người dùng hủy chia sẻ');
+    }
+  } else {
+    // Máy không hỗ trợ thì copy
+    copyText();
+    toast('Máy không hỗ trợ chia sẻ!');
+  }
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display='block';
+  setTimeout(()=>{ t.style.display='none'; }, 2500);
+}
+
+function esc(s){ return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+</script>
+</body>
+</html>
