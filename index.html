@@ -3,13 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
- <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Nhập Đơn Hàng">
-<meta name="theme-color" content="#1a56db">
- 
 <title>Nhập Đơn Hàng</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,15 +10,11 @@
   h1 { text-align: center; padding: 18px 0 10px; font-size: 20px; color: #1a56db; letter-spacing: 0.5px; }
   .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.09); padding: 18px 18px 14px; margin: 0 auto 14px; max-width: 600px; }
   label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
-
-  input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  }
-  input[type="date"] {
-  -webkit-locale: "vi-VN";
-}
-
-  input[type=text], input[type=number] {
+ 
+  input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
+  input[type="date"] { -webkit-locale: "vi-VN"; }
+ 
+  input[type=text], input[type=number], input[type=date] {
     width: 100%; padding: 9px 11px; border: 1px solid #d1d5db;
     border-radius: 7px; font-size: 14px; outline: none; background: #fff; color: #222;
   }
@@ -60,7 +49,22 @@
   td { padding: 7px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
   td.del { text-align: center; color: #e53e3e; cursor: pointer; font-size: 18px; font-weight: bold; }
   td.del:hover { color: #c53030; }
-  .print-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 13px 15px; font-size: 13px; line-height: 2; white-space: pre-wrap; word-break: break-word; margin-bottom: 14px; color: #222; }
+ 
+  /* Nhóm ngày trong bảng */
+  tr.date-group-row td {
+    background: #eff6ff;
+    color: #1a56db;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 5px 8px;
+    border-bottom: 1px solid #bfdbfe;
+  }
+ 
+  .print-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 13px 15px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; margin-bottom: 14px; color: #222; }
+  .input-wrap { position: relative; }
+  .input-wrap input { padding-right: 28px; }
+  .btn-x { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #bbb; font-size: 15px; cursor: pointer; line-height: 1; padding: 0; display: none; }
+  .btn-x:hover { color: #e53e3e; }
   .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
   .toast { display: none; position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 9px 22px; border-radius: 8px; font-size: 13px; z-index: 9999; }
   .section-title { font-size: 12px; color: #888; margin-bottom: 10px; }
@@ -68,23 +72,25 @@
 </style>
 </head>
 <body>
-
+ 
 <h1>📋 Nhập Đơn Hàng</h1>
-
+ 
 <div class="card">
   <p class="section-title">Thông tin đơn hàng mới</p>
   <div class="row2" style="margin-bottom:12px;">
-  <div class="field">
-    <label>Ngày đặt hàng</label>
-    <input id="inp-date" type="date" style="width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;outline:none;"
-    lang="vi" />
+    <div class="field">
+      <label>Ngày đặt hàng</label>
+      <input id="inp-date" type="date" lang="vi" />
+    </div>
   </div>
-</div>
-  <div class="row2"> 
+  <div class="row2">
     <div class="field">
       <label>Họ tên khách hàng</label>
-      <input id="inp-name" type="text" placeholder="Gõ tên..." autocomplete="off"
-        oninput="filterNames(this.value)" onfocus="filterNames(this.value)" />
+      <div class="input-wrap">
+        <input id="inp-name" type="text" placeholder="Gõ tên..." autocomplete="off"
+          oninput="filterNames(this.value);toggleX('x-name',this.value)" onfocus="filterNames(this.value);toggleX('x-name',this.value)" />
+        <button class="btn-x" id="x-name" onclick="clearField('inp-name','x-name','dd-name')">✕</button>
+      </div>
       <div class="dropdown" id="dd-name"></div>
     </div>
     <div class="field">
@@ -99,14 +105,17 @@
     </div>
     <div class="field">
       <label>Sản phẩm mua</label>
-      <input id="inp-prod" type="text" placeholder="Gõ tên sản phẩm..." autocomplete="off"
-        oninput="filterProds(this.value)" onfocus="filterProds(this.value)" />
+      <div class="input-wrap">
+        <input id="inp-prod" type="text" placeholder="Gõ tên sản phẩm..." autocomplete="off"
+          oninput="filterProds(this.value);toggleX('x-prod',this.value)" onfocus="filterProds(this.value);toggleX('x-prod',this.value)" />
+        <button class="btn-x" id="x-prod" onclick="clearField('inp-prod','x-prod','dd-prod')">✕</button>
+      </div>
       <div class="dropdown" id="dd-prod"></div>
     </div>
   </div>
   <button class="btn btn-add" onclick="addRow()">+ Thêm vào danh sách</button>
 </div>
-
+ 
 <div class="card" id="list-area" style="display:none;">
   <div class="top-bar">
     <p class="section-title" style="margin:0;">Danh sách đơn hàng</p>
@@ -116,10 +125,10 @@
     <table>
       <thead>
         <tr>
-          <th style="width:32%;">Họ tên</th>
-          <th style="width:14%;">ĐC</th>
-          <th style="width:12%;text-align:center;">SL</th>
-          <th style="width:32%;">Sản phẩm</th>
+          <th style="width:30%;">Họ tên</th>
+          <th style="width:12%;">ĐC</th>
+          <th style="width:10%;text-align:center;">SL</th>
+          <th style="width:30%;">Sản phẩm</th>
           <th style="width:10%;"></th>
         </tr>
       </thead>
@@ -130,7 +139,7 @@
     <button class="btn btn-print" onclick="showPrint()">🖨 IN / XUẤT</button>
   </div>
 </div>
-
+ 
 <div class="card" id="print-area" style="display:none;">
   <p class="section-title">Nội dung xuất</p>
   <div class="print-box" id="print-text"></div>
@@ -139,13 +148,11 @@
     <button class="btn btn-zalo" onclick="sendZalo()">💬 Gửi Zalo</button>
   </div>
 </div>
-
+ 
 <div class="toast" id="toast"></div>
-
+ 
 <script>
 const CUSTOMERS = [
-  /* THÊM KHÁCH HÀNG VÀO ĐÂY — theo mẫu: {name:"Họ Tên", addr:"ĐC"}, */
-
   { name: "Đinh Văn Sên", addr: "LX" },
   { name: "Đinh Văn Lân", addr: "LX" },
   { name: "Nguyễn Quốc Thái", addr: "VB" },
@@ -434,215 +441,225 @@ const CUSTOMERS = [
   { name: "Hà Duy Đăng", addr: "CĐ" },
   { name: "Trần Tấn Đạt", addr: "TPBL" },
   { name: "Nguyễn Văn Giàu", addr: "LXA" },
-
-
-  /* THÊM KHÁCH HÀNG VÀO ĐÂY — theo mẫu: {name:"Họ Tên", addr:"ĐC"}, */
 ];
-
+ 
 const PRODUCTS = [
-  "Sú lở", "Sú", "Sú moana", "Sú chân đỏ", "TCX", "Càng", "Cua tiêu", "Cua mít", "Cua", "YuccaC30", 
+  "Sú lở", "Sú", "Sú moana", "Sú chân đỏ", "TCX", "Càng", "Cua tiêu", "Cua mít", "Cua", "YuccaC30",
   "Men", "CM01", "CM02", "Khoáng", "Toxin", "TA 10 ký", "TA", "Bồ đề", "Anti Rota", "Thuốc Rong", "Thẻ"
-  /* THÊM SẢN PHẨM VÀO ĐÂY — ví dụ: "Tên sản phẩm", */
 ];
-
+ 
 let orders = [];
+ 
 // Tự động chọn ngày hôm nay
 document.getElementById('inp-date').valueAsDate = new Date();
-
+ 
 function norm(s){
   return s.toLowerCase()
-  .replace(/đ/g, 'd')
-  .normalize("NFD")
-  .replace(/[\u0300-\u036f]/g,"");
+    .replace(/đ/g, 'd')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"");
 }
-
+ 
 function filterNames(v){
   const dd = document.getElementById('dd-name');
-
-  if(!v.trim()){
-    dd.style.display='none';
-    return;
-  }
-
+  if(!v.trim()){ dd.style.display='none'; return; }
   const keyword = norm(v);
-
   const hits = CUSTOMERS
     .map(c => {
       const n = norm(c.name);
-
-      // MỚI
-const words = n.split(' ');
-let score = 99;
-if(words[words.length - 1] === keyword){
-  score = 0;  // từ cuối khớp CHÍNH XÁC → cao nhất
-}
-else if(words[words.length - 1].startsWith(keyword)){
-  score = 1;  // từ cuối bắt đầu bằng keyword
-}
-else if(words.some(w => w.startsWith(keyword))){
-  score = 2;  // từ khác bắt đầu đúng
-}
-else if(n.includes(keyword)){
-  score = 3;  // chứa ở giữa
-}
-
+      const words = n.split(' ');
+      let score = 99;
+      if(words[words.length - 1] === keyword) score = 0;
+      else if(words[words.length - 1].startsWith(keyword)) score = 1;
+      else if(words.some(w => w.startsWith(keyword))) score = 2;
+      else if(n.includes(keyword)) score = 3;
       return {...c, score};
     })
     .filter(c => c.score < 99)
     .sort((a,b) => a.score - b.score)
     .slice(0,12);
-
-  if(!hits.length){
-    dd.style.display='none';
-    return;
-  }
-
+  if(!hits.length){ dd.style.display='none'; return; }
   dd.innerHTML = hits.map(c =>
     `<div onclick="pickName('${esc(c.name)}','${esc(c.addr)}')">
       <span>${c.name}</span>
       <span class="addr">${c.addr}</span>
     </div>`
   ).join('');
-
   dd.style.display = 'block';
 }
+ 
 function pickName(name, addr){
   document.getElementById('inp-name').value = name;
   document.getElementById('inp-addr').value = addr;
   document.getElementById('dd-name').style.display = 'none';
 }
-
+ 
 function filterProds(v){
   const dd = document.getElementById('dd-prod');
   if(!v.trim()){ dd.style.display='none'; return; }
   const keyword = norm(v);
-  
   const hits = PRODUCTS
     .map(p => {
       const n = norm(p);
       const words = n.split(' ');
       let score = 99;
-      if(words[0] === keyword){
-        score = 0;  // từ đầu khớp chính xác
-      }
-      else if(words[0].startsWith(keyword)){
-        score = 1;  // từ đầu bắt đầu bằng keyword
-      }
-      else if(words.some(w => w === keyword)){
-        score = 2;  // từ khác khớp chính xác
-      }
-      else if(n.includes(keyword)){
-        score = 3;  // chứa ở giữa
-      }
+      if(words[0] === keyword) score = 0;
+      else if(words[0].startsWith(keyword)) score = 1;
+      else if(words.some(w => w === keyword)) score = 2;
+      else if(n.includes(keyword)) score = 3;
       return {p, score};
     })
     .filter(x => x.score < 99)
     .sort((a,b) => a.score - b.score)
     .slice(0,10)
     .map(x => x.p);
-
   if(!hits.length){ dd.style.display='none'; return; }
   dd.innerHTML = hits.map(p =>
     `<div onclick="pickProd('${esc(p)}')">${p}</div>`
   ).join('');
   dd.style.display = 'block';
 }
-
+ 
 function pickProd(p){
   document.getElementById('inp-prod').value = p;
   document.getElementById('dd-prod').style.display = 'none';
 }
-
+ 
 document.addEventListener('click', function(e){
   if(!e.target.closest('#inp-name') && !e.target.closest('#dd-name'))
     document.getElementById('dd-name').style.display='none';
   if(!e.target.closest('#inp-prod') && !e.target.closest('#dd-prod'))
     document.getElementById('dd-prod').style.display='none';
 });
-
+ 
 function addRow(){
+  const dateVal = document.getElementById('inp-date').value;
   const name = document.getElementById('inp-name').value.trim();
   const addr = document.getElementById('inp-addr').value.trim();
   const qty  = document.getElementById('inp-qty').value.trim();
   const prod = document.getElementById('inp-prod').value.trim();
   if(!name||!qty||!prod){ toast('Vui lòng điền đủ: Tên, Số lượng, Sản phẩm!'); return; }
-  orders.push({name, addr, qty, prod});
+  // ✅ Mỗi đơn hàng lưu kèm ngày riêng
+  orders.push({date: dateVal, name, addr, qty, prod});
   renderTable();
   document.getElementById('inp-name').value='';
   document.getElementById('inp-addr').value='';
   document.getElementById('inp-qty').value='';
   document.getElementById('inp-prod').value='';
+  document.getElementById('x-name').style.display='none';
+  document.getElementById('x-prod').style.display='none';
   document.getElementById('inp-name').focus();
 }
-
+ 
+// Chuyển "YYYY-MM-DD" → "DD/MM/YYYY"
+function fmtDate(val){
+  if(!val) return '';
+  const [y,m,d] = val.split('-');
+  return `${d}/${m}/${y}`;
+}
+ 
 function renderTable(){
   const tbody = document.getElementById('order-body');
-  tbody.innerHTML = orders.map((o,i) =>
-    `<tr>
-      <td>${o.name}</td>
-      <td style="color:#888;">${o.addr}</td>
-      <td style="text-align:center;">${o.qty}</td>
-      <td>${o.prod}</td>
-      <td class="del" onclick="delRow(${i})" title="Xóa">✕</td>
-    </tr>`
-  ).join('');
+ 
+  // ✅ Nhóm đơn hàng theo ngày, sắp xếp ngày tăng dần
+  const groups = {};
+  orders.forEach((o, i) => {
+    if(!groups[o.date]) groups[o.date] = [];
+    groups[o.date].push({...o, idx: i});
+  });
+  const dateOrder = Object.keys(groups).sort();
+ 
+  let html = '';
+  dateOrder.forEach(date => {
+    // Tiêu đề nhóm ngày
+    html += `<tr class="date-group-row">
+      <td colspan="5">📅 Ngày: ${fmtDate(date)}</td>
+    </tr>`;
+    groups[date].forEach(o => {
+      html += `<tr>
+        <td>${o.name}</td>
+        <td style="color:#888;">${o.addr}</td>
+        <td style="text-align:center;">${o.qty}</td>
+        <td>${o.prod}</td>
+        <td class="del" onclick="delRow(${o.idx})" title="Xóa">✕</td>
+      </tr>`;
+    });
+  });
+ 
+  tbody.innerHTML = html;
   document.getElementById('list-area').style.display = orders.length ? 'block' : 'none';
   document.getElementById('print-area').style.display = 'none';
 }
-
+ 
 function delRow(i){ orders.splice(i,1); renderTable(); }
 function clearAll(){ if(confirm('Xóa tất cả đơn hàng?')){ orders=[]; renderTable(); } }
-
+ 
 function showPrint(){
-  const dateVal = document.getElementById('inp-date').value;
-  const [y,m,d] = dateVal.split('-');
-  const dateStr = dateVal ? `Ngày: ${d}/${m}/${y}\n` : '';
-  const txt = dateStr + orders.map(o => `${o.name} - ${o.addr} - SL: ${o.qty} - ${o.prod}`).join('\n');
-  document.getElementById('print-text').textContent = txt;
+  // ✅ Xuất nội dung nhóm theo ngày, sắp xếp ngày tăng dần
+  const groups = {};
+  orders.forEach(o => {
+    if(!groups[o.date]) groups[o.date] = [];
+    groups[o.date].push(o);
+  });
+  const dateOrder = Object.keys(groups).sort();
+ 
+  const lines = [];
+  dateOrder.forEach((date, di) => {
+    if(di > 0) lines.push(''); // dòng trống giữa các ngày
+    lines.push(`Ngày: ${fmtDate(date)}`);
+    groups[date].forEach(o => {
+      lines.push(`${o.name} - ${o.addr} - SL: ${o.qty} - ${o.prod}`);
+    });
+  });
+ 
+  document.getElementById('print-text').textContent = lines.join('\n');
   document.getElementById('print-area').style.display = 'block';
   document.getElementById('print-area').scrollIntoView({behavior:'smooth'});
 }
-
+ 
 function copyText(){
   const txt = document.getElementById('print-text').textContent;
   if(navigator.clipboard){
     navigator.clipboard.writeText(txt).then(()=>toast('Đã sao chép!')).catch(()=>fallbackCopy(txt));
   } else { fallbackCopy(txt); }
 }
-
+ 
 function fallbackCopy(txt){
   const ta = document.createElement('textarea');
   ta.value = txt; document.body.appendChild(ta); ta.select();
   document.execCommand('copy'); document.body.removeChild(ta);
   toast('Đã sao chép!');
 }
-
+ 
 async function sendZalo(){
   const txt = document.getElementById('print-text').textContent;
-
-  // Điện thoại hỗ trợ chia sẻ hệ thống
-  if (navigator.share) {
+  if(navigator.share){
     try {
-      await navigator.share({
-        title: 'Danh sách đơn hàng',
-        text: txt
-      });
-    } catch (err) {
-      console.log('Người dùng hủy chia sẻ');
-    }
+      await navigator.share({ title: 'Danh sách đơn hàng', text: txt });
+    } catch(err) { console.log('Người dùng hủy chia sẻ'); }
   } else {
-    // Máy không hỗ trợ thì copy
     copyText();
     toast('Máy không hỗ trợ chia sẻ!');
   }
 }
-
+ 
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.display='block';
   setTimeout(()=>{ t.style.display='none'; }, 2500);
 }
-
+ 
+function toggleX(btnId, val){
+  document.getElementById(btnId).style.display = val.trim() ? 'block' : 'none';
+}
+function clearField(inputId, btnId, ddId){
+  document.getElementById(inputId).value = '';
+  document.getElementById(btnId).style.display = 'none';
+  if(ddId) document.getElementById(ddId).style.display = 'none';
+  if(inputId === 'inp-name') document.getElementById('inp-addr').value = '';
+  document.getElementById(inputId).focus();
+}
+ 
 function esc(s){ return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 </script>
 </body>
